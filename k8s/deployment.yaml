@@ -14,9 +14,9 @@ spec:
     spec:
       containers:
         - name: cicd-app
-          image: 'liiamj234/cicd-k8s:5aa093d'
+          image: 'liiamj234/cicd-k8s:2a57b21'
           ports:
             - containerPort: 8000
           env:
             - name: APP_VERSION
-              value: 5aa093d
+              value: 2a57b21
