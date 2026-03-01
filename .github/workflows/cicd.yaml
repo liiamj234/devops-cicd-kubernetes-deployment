@@ -35,8 +35,9 @@ jobs:
 
       - name: Update Kubernetes Manifest
         run: |
-          sed -i "s|image: liiamj234/cicd-k8s:.*|image: liiamj234/cicd-k8s:${{ steps.vars.outputs.SHA_SHORT }}|" k8s/deployment.yaml
-          sed -i "s|value: \".*\"|value: \"${{ steps.vars.outputs.SHA_SHORT }}\"|" k8s/deployment.yaml
+          SHA=${{ steps.vars.outputs.SHA_SHORT }}
+          sed -i "s|image: liiamj234/cicd-k8s:.*|image: liiamj234/cicd-k8s:$SHA|" k8s/deployment.yaml
+          sed -i "/name: APP_VERSION/{n;s|value: .*|value: \"$SHA\"|}" k8s/deployment.yaml
 
       - name: Commit and Push Updated Manifest
         run: |
