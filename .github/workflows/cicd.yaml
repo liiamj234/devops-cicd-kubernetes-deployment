@@ -2,14 +2,15 @@ name: Build, Push and GitOps Update
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
 
 jobs:
   build-push-update:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -24,27 +25,31 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build image
+      - name: Build Docker Image
         run: |
           docker build -t liiamj234/cicd-k8s:${{ steps.vars.outputs.SHA_SHORT }} ./app
 
-      - name: Push image
+      - name: Push Docker Image
         run: |
           docker push liiamj234/cicd-k8s:${{ steps.vars.outputs.SHA_SHORT }}
 
-      - name: Install yq (YAML editor)
+      - name: Install yq
         run: |
           sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
           sudo chmod +x /usr/local/bin/yq
           yq --version
 
-      - name: Update image tag + APP_VERSION in deployment.yaml
+      - name: Update Kubernetes deployment.yaml
+        env:
+          SHA_SHORT: ${{ steps.vars.outputs.SHA_SHORT }}
         run: |
-          SHA=${{ steps.vars.outputs.SHA_SHORT }}
-          yq -i '.spec.template.spec.containers[0].image = "liiamj234/cicd-k8s:" + strenv(SHA)' k8s/deployment.yaml
-          yq -i '.spec.template.spec.containers[0].env |= (map(select(.name != "APP_VERSION")) + [{"name":"APP_VERSION","value": strenv(SHA)}])' k8s/deployment.yaml
+          echo "Updating manifest with SHA: $SHA_SHORT"
 
-      - name: Commit & push manifest update
+          yq -i '.spec.template.spec.containers[0].image = "liiamj234/cicd-k8s:" + strenv(SHA_SHORT)' k8s/deployment.yaml
+
+          yq -i '.spec.template.spec.containers[0].env = [{"name":"APP_VERSION","value": strenv(SHA_SHORT)}]' k8s/deployment.yaml
+
+      - name: Commit and Push Updated Manifest
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
